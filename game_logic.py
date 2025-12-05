@@ -59,19 +59,25 @@ class GameLogic:
         
     def update_mouse_line(self, mouse_pos):
         # 鼠标线长度
-        line_length = 50
+        line_length = 80
         
         # 计算鼠标到球的角度
         dx = self.ball_pos[0] - mouse_pos[0]
         dy = self.ball_pos[1] - mouse_pos[1]
         angle = math.atan2(dy, dx)
         
-        # 计算鼠标线的终点
-        end_x = mouse_pos[0] + line_length * math.cos(angle)
-        end_y = mouse_pos[1] + line_length * math.sin(angle)
+        # 计算横线的两个端点，让横线接触面积大的地方朝向球
+        # 横线垂直于鼠标到球的方向
+        perp_angle = angle + math.pi / 2
+        
+        # 计算横线的两个端点
+        start_x = mouse_pos[0] + (line_length / 2) * math.cos(perp_angle)
+        start_y = mouse_pos[1] + (line_length / 2) * math.sin(perp_angle)
+        end_x = mouse_pos[0] - (line_length / 2) * math.cos(perp_angle)
+        end_y = mouse_pos[1] - (line_length / 2) * math.sin(perp_angle)
         
         # 更新鼠标线
-        self.mouse_line = [mouse_pos[0], mouse_pos[1], end_x, end_y]
+        self.mouse_line = [start_x, start_y, end_x, end_y]
         
     def check_ball_mouse_collision(self):
         # 检查球是否与鼠标线碰撞
@@ -123,9 +129,48 @@ class GameLogic:
         nx = dx / length
         ny = dy / length
         
+        # 计算球到线段的最近点
+        line_start = (self.mouse_line[0], self.mouse_line[1])
+        line_end = (self.mouse_line[2], self.mouse_line[3])
+        ball_pos = (self.ball_pos[0], self.ball_pos[1])
+        
+        # 计算最近点
+        px, py = ball_pos
+        x1, y1 = line_start
+        x2, y2 = line_end
+        
+        # 线段的向量
+        line_dx = x2 - x1
+        line_dy = y2 - y1
+        
+        # 计算点到线段的投影
+        t = ((px - x1) * line_dx + (py - y1) * line_dy) / (line_dx * line_dx + line_dy * line_dy)
+        t = max(0, min(1, t))
+        
+        # 最近点
+        closest_x = x1 + t * line_dx
+        closest_y = y1 + t * line_dy
+        
+        # 将球移动到线的另一侧，避免穿模
+        push_distance = self.ball_radius - math.hypot(px - closest_x, py - closest_y)
+        if push_distance > 0:
+            self.ball_pos[0] += (closest_x - px) * (push_distance / self.ball_radius)
+            self.ball_pos[1] += (closest_y - py) * (push_distance / self.ball_radius)
+        
         # 计算球的速度向量
         vx = self.ball_speed[0]
         vy = self.ball_speed[1]
+        
+        # 如果球初始速度为0，给一个初始速度
+        if vx == 0 and vy == 0:
+            # 计算从鼠标到球的方向
+            mouse_pos = ((self.mouse_line[0] + self.mouse_line[2]) / 2, (self.mouse_line[1] + self.mouse_line[3]) / 2)
+            dx_ball = self.ball_pos[0] - mouse_pos[0]
+            dy_ball = self.ball_pos[1] - mouse_pos[1]
+            ball_dist = math.hypot(dx_ball, dy_ball)
+            if ball_dist > 0:
+                vx = (dx_ball / ball_dist) * 8
+                vy = (dy_ball / ball_dist) * 8
         
         # 计算反射向量
         dot_product = vx * nx + vy * ny

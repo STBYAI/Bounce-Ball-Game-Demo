@@ -5,7 +5,14 @@ class GameRenderer:
         self.screen = screen
         self.WIDTH = screen.get_width()
         self.HEIGHT = screen.get_height()
-        self.font = pygame.font.Font(None, 36)
+        # 使用支持中文的字体
+        try:
+            self.font = pygame.font.Font("msyh.ttc", 36)
+        except:
+            try:
+                self.font = pygame.font.Font("simhei.ttf", 36)
+            except:
+                self.font = pygame.font.Font(None, 36)
         
     def render(self, ball_pos, mouse_line, game_mode, score, game_over):
         # 填充背景
