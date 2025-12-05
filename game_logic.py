@@ -39,6 +39,9 @@ class GameLogic:
         self.ball.x += self.ball.vx
         self.ball.y += self.ball.vy
 
+        # 检查球与水平线的碰撞
+        self.check_horizontal_line_collision()
+        
         # Ball collision with screen edges
         if self.ball.x - self.ball.radius <= 0:
             self.ball.x = self.ball.radius
@@ -116,6 +119,26 @@ class GameLogic:
 
             if self.mode == "gravity":
                 self.score += 10
+
+    def check_horizontal_line_collision(self):
+        # 检查球与屏幕中线（水平线）的碰撞
+        line_y = self.screen_height // 2
+        
+        # 球的底部或顶部是否接触到水平线
+        if (self.ball.y - self.ball.radius <= line_y <= self.ball.y + self.ball.radius):
+            # 计算碰撞点的x坐标范围
+            if (self.ball.x >= 0 and self.ball.x <= self.screen_width):
+                # 反弹：反转y方向速度
+                self.ball.vy = -self.ball.vy
+                
+                # 添加一些额外的向上速度
+                self.ball.vy += -5 if self.ball.vy > 0 else 5
+                
+                # 调整球的位置，防止卡在水平线里
+                if self.ball.y < line_y:
+                    self.ball.y = line_y - self.ball.radius - 1
+                else:
+                    self.ball.y = line_y + self.ball.radius + 1
 
     def distance_to_line_sq(self, px, py, x1, y1, x2, y2):
         # Calculate squared distance from point (px, py) to line segment (x1,y1)-(x2,y2)
