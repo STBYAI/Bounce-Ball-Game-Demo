@@ -6,13 +6,52 @@ class GameRenderer:
         self.WIDTH = screen.get_width()
         self.HEIGHT = screen.get_height()
         # 使用支持中文的字体
-        try:
-            self.font = pygame.font.Font("msyh.ttc", 36)
-        except:
+        font_paths = [
+            "msyh.ttc",
+            "simhei.ttf",
+            "simsun.ttc",
+            "mingliu.ttc",
+            "kaiu.ttf",
+            "STSong.ttf",
+            "STHeiti.ttf",
+            "STKaiti.ttf",
+            "STFangsong.ttf"
+        ]
+        
+        self.font = None
+        for font_path in font_paths:
             try:
-                self.font = pygame.font.Font("simhei.ttf", 36)
+                self.font = pygame.font.Font(font_path, 36)
+                break
             except:
-                self.font = pygame.font.Font(None, 36)
+                continue
+        
+        if self.font is None:
+            try:
+                # 尝试使用系统字体目录
+                import os
+                system_font_dirs = [
+                    "C:\\Windows\\Fonts",
+                    "C:\\WinNT\\Fonts",
+                    "C:\\WINNT\\Fonts",
+                    "C:\\Windows\\Fonts\\",
+                    "C:\\WinNT\\Fonts\\",
+                    "C:\\WINNT\\Fonts\\"
+                ]
+                
+                for font_dir in system_font_dirs:
+                    for font_path in font_paths:
+                        full_path = os.path.join(font_dir, font_path)
+                        if os.path.exists(full_path):
+                            self.font = pygame.font.Font(full_path, 36)
+                            break
+                    if self.font is not None:
+                        break
+            except:
+                pass
+        
+        if self.font is None:
+            self.font = pygame.font.Font(None, 36)
         
     def render(self, ball_pos, mouse_line, game_mode, score, game_over):
         # 填充背景

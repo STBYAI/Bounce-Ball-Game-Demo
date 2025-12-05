@@ -89,6 +89,31 @@ class GameLogic:
         distance = self.point_to_line_distance(ball_pos, line_start, line_end)
         
         # 如果距离小于球的半径，说明碰撞
+        # 同时检查球的运动方向，确保只在球靠近线段时才触发碰撞
+        # 计算球的运动方向向量
+        if self.ball_speed[0] != 0 or self.ball_speed[1] != 0:
+            # 计算线段的方向向量
+            line_dx = line_end[0] - line_start[0]
+            line_dy = line_end[1] - line_start[1]
+            
+            # 计算线段的法向量（垂直于线段）
+            normal_dx = -line_dy
+            normal_dy = line_dx
+            
+            # 归一化法向量
+            normal_length = math.hypot(normal_dx, normal_dy)
+            if normal_length > 0:
+                normal_dx /= normal_length
+                normal_dy /= normal_length
+            
+            # 计算球的速度向量与法向量的点积
+            dot_product = self.ball_speed[0] * normal_dx + self.ball_speed[1] * normal_dy
+            
+            # 如果点积为正，说明球正在靠近线段
+            if dot_product > 0:
+                return distance < self.ball_radius
+        
+        # 如果球静止或远离线段，也进行碰撞检测
         return distance < self.ball_radius
         
     def point_to_line_distance(self, point, line_start, line_end):
@@ -178,7 +203,7 @@ class GameLogic:
         new_vy = vy - 2 * dot_product * ny
         
         # 增加一些速度，让球弹得更远
-        speed_multiplier = 1.5
+        speed_multiplier = 1.2
         self.ball_speed[0] = new_vx * speed_multiplier
         self.ball_speed[1] = new_vy * speed_multiplier
         
