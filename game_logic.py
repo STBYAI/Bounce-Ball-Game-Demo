@@ -59,15 +59,17 @@ class Ball:
         if speed_normal > 0:
             return False
         
-        # 反转法向速度分量
-        self.vx -= 2 * speed_normal * normal_vx
-        self.vy -= 2 * speed_normal * normal_vy
+        # 反转法向速度分量并增加弹力
+        # 增加更大的弹力值，使球反弹更高
+        self.vx -= 2 * speed_normal * normal_vx * 1.5  # 增加弹力
+        self.vy -= 2 * speed_normal * normal_vy * 1.5  # 增加弹力
         
-        # 增加一些速度，使游戏更有乐趣
+        # 额外增加一些速度，使游戏更有乐趣
         speed = math.hypot(self.vx, self.vy)
         if speed > 0:
-            self.vx = (self.vx / speed) * (speed * 1.1)
-            self.vy = (self.vy / speed) * (speed * 1.1)
+            # 增加更大的速度提升
+            self.vx = (self.vx / speed) * (speed * 1.3)
+            self.vy = (self.vy / speed) * (speed * 1.3)
         
         return True
 
@@ -185,9 +187,10 @@ class GameLogic:
 
         # 检测球拍与球的碰撞
         if self.paddle.check_ball_collision(self.ball):
-            if self.ball.check_paddle_collision(self.paddle):
-                if self.mode == "gravity":
-                    self.score += 10
+            # 只需要一个碰撞检测，简化逻辑
+            self.ball.check_paddle_collision(self.paddle)
+            if self.mode == "gravity":
+                self.score += 10
 
         # 重力模式下检测球是否落地
         if self.mode == "gravity" and self.ball.y + self.ball.radius >= self.screen_height - 10:
