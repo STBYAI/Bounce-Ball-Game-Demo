@@ -33,38 +33,43 @@ class Ball:
             self.vy = -self.vy * self.edge_damping
 
     def check_paddle_collision(self, paddle):
-        # 计算球与球拍的距离
+        # 计算球拍的法线方向（垂直于球拍平面）
+        normal_angle = paddle.angle - math.pi / 2
+        
+        # 计算球到球拍的向量
         dx = self.x - paddle.x
         dy = self.y - paddle.y
-        distance = math.hypot(dx, dy)
-
-        if distance < self.radius + paddle.length / 2:
-            # 计算反弹方向
-            angle = math.atan2(dy, dx)
-            paddle_angle = paddle.angle
-
-            # 计算相对角度
-            relative_angle = angle - paddle_angle
-            if relative_angle > math.pi:
-                relative_angle -= 2 * math.pi
-            elif relative_angle < -math.pi:
-                relative_angle += 2 * math.pi
-
-            # 限制反弹角度
-            max_angle = math.pi / 3  # 60度
-            if relative_angle > max_angle:
-                relative_angle = max_angle
-            elif relative_angle < -max_angle:
-                relative_angle = -max_angle
-
-            # 计算新的速度方向
-            bounce_angle = paddle_angle + relative_angle
-            speed = math.hypot(self.vx, self.vy) * 1.1  # 稍微增加速度
-            self.vx = speed * math.cos(bounce_angle)
-            self.vy = speed * math.sin(bounce_angle)
-
-            return True
-        return False
+        
+        # 计算球在法线上的投影
+        dot_product = dx * math.cos(normal_angle) + dy * math.sin(normal_angle)
+        
+        # 如果球在球拍的背面，不发生碰撞
+        if dot_product > 0:
+            return False
+        
+        # 计算反弹速度
+        # 速度在法线上的分量反转
+        normal_vx = math.cos(normal_angle)
+        normal_vy = math.sin(normal_angle)
+        
+        # 计算速度在法线上的分量
+        speed_normal = self.vx * normal_vx + self.vy * normal_vy
+        
+        # 如果球正在远离球拍，不发生碰撞
+        if speed_normal > 0:
+            return False
+        
+        # 反转法向速度分量
+        self.vx -= 2 * speed_normal * normal_vx
+        self.vy -= 2 * speed_normal * normal_vy
+        
+        # 增加一些速度，使游戏更有乐趣
+        speed = math.hypot(self.vx, self.vy)
+        if speed > 0:
+            self.vx = (self.vx / speed) * (speed * 1.1)
+            self.vy = (self.vy / speed) * (speed * 1.1)
+        
+        return True
 
     def reset(self, x, y):
         self.x = x
@@ -83,13 +88,14 @@ class Paddle:
         self.color = (255, 255, 255)
 
     def update(self, ball_x, ball_y):
-        # 计算球拍朝向球的角度
+        # 计算球拍朝向球的角度（让横线平面朝向球，而不是端点朝向球）
         dx = ball_x - self.x
         dy = ball_y - self.y
-        self.angle = math.atan2(dy, dx)
+        # 计算垂直于球方向的角度，这样横线平面朝向球
+        self.angle = math.atan2(dy, dx) + math.pi / 2
 
     def check_ball_collision(self, ball):
-        # 计算球拍的四个端点
+        # 计算球拍的两个端点
         angle = self.angle
         half_length = self.length / 2
 
@@ -125,7 +131,15 @@ class Paddle:
         dy = ball.y - yy
         distance = math.hypot(dx, dy)
 
-        return distance < ball.radius
+        # 检查球是否在线段附近
+        if distance < ball.radius:
+            # 纠正球的位置，防止穿模
+            if distance > 0:
+                overlap = ball.radius - distance
+                ball.x += (dx / distance) * overlap
+                ball.y += (dy / distance) * overlap
+            return True
+        return False
 
 
 class GameLogic:
@@ -148,6 +162,9 @@ class GameLogic:
         else:
             self.ball.gravity = 0
             self.ball.edge_damping = 0.9  # 自由模式下边缘减速
+            # 自由模式下给球一个微小的初始速度，防止完全静止
+            self.ball.vx = 0.1
+            self.ball.vy = 0.1
 
     def reset(self):
         self.ball.reset(self.screen_width // 2, self.screen_height // 2)
@@ -168,9 +185,9 @@ class GameLogic:
 
         # 检测球拍与球的碰撞
         if self.paddle.check_ball_collision(self.ball):
-            self.ball.check_paddle_collision(self.paddle)
-            if self.mode == "gravity":
-                self.score += 10
+            if self.ball.check_paddle_collision(self.paddle):
+                if self.mode == "gravity":
+                    self.score += 10
 
         # 重力模式下检测球是否落地
         if self.mode == "gravity" and self.ball.y + self.ball.radius >= self.screen_height - 10:
