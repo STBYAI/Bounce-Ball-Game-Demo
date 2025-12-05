@@ -75,27 +75,30 @@ class GameLogic:
         mx, my = mouse_pos
         ball_x, ball_y = self.ball.x, self.ball.y
 
-        # Calculate line angle towards ball
+        # Calculate the angle that makes the line horizontal when mouse is below ball
+        # We want the line to be perpendicular to the line connecting mouse and ball
         dx = ball_x - mx
         dy = ball_y - my
-        angle = math.atan2(dy, dx)
+        
+        # The angle of the line connecting mouse and ball
+        angle_to_ball = math.atan2(dy, dx)
+        
+        # The angle for the paddle line (perpendicular to angle_to_ball)
+        paddle_angle = angle_to_ball - math.pi / 2
 
-        # Calculate line endpoints
-        line_x = mx + math.cos(angle) * line_length
-        line_y = my + math.sin(angle) * line_length
+        # Calculate line endpoints - the line extends equally in both directions perpendicular to mouse-ball line
+        line_x1 = mx + math.cos(paddle_angle) * (line_length / 2)
+        line_y1 = my + math.sin(paddle_angle) * (line_length / 2)
+        line_x2 = mx - math.cos(paddle_angle) * (line_length / 2)
+        line_y2 = my - math.sin(paddle_angle) * (line_length / 2)
 
         # Check if ball is close to the line
-        dist_sq = self.distance_to_line_sq(ball_x, ball_y, mx, my, line_x, line_y)
+        dist_sq = self.distance_to_line_sq(ball_x, ball_y, line_x1, line_y1, line_x2, line_y2)
         if dist_sq <= self.ball.radius ** 2:
-            # Calculate collision normal (perpendicular to line)
-            normal_x = -math.sin(angle)
-            normal_y = math.cos(angle)
-
-            # Check if normal is pointing towards ball
-            dot_product = (ball_x - mx) * normal_x + (ball_y - my) * normal_y
-            if dot_product < 0:
-                normal_x = -normal_x
-                normal_y = -normal_y
+            # Calculate collision normal (perpendicular to line, pointing away from mouse to ball direction)
+            # The normal should be in the direction from mouse to ball
+            normal_x = math.cos(angle_to_ball)
+            normal_y = math.sin(angle_to_ball)
 
             # Calculate reflection vector
             dot = self.ball.vx * normal_x + self.ball.vy * normal_y
@@ -103,8 +106,13 @@ class GameLogic:
             self.ball.vy -= 2 * dot * normal_y
 
             # Add some extra velocity
-            self.ball.vx += normal_x * 5
-            self.ball.vy += normal_y * 5
+            self.ball.vx += normal_x * 8
+            self.ball.vy += normal_y * 8
+
+            # Prevent ball from sticking to the paddle by adjusting its position
+            overlap = self.ball.radius - math.sqrt(dist_sq)
+            self.ball.x += normal_x * overlap
+            self.ball.y += normal_y * overlap
 
             if self.mode == "gravity":
                 self.score += 10
